@@ -1,24 +1,32 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os, json, base64
 from firebase_admin import credentials, initialize_app
-import os, dotenv
-import base64
-import json
+from pathlib import Path
 
+# Carrega variables del .env
+load_dotenv()
+
+# ── Firebase ────────────────────────────────────────────
 firebase_creds_b64 = os.getenv("FIREBASE_CREDS_B64")
 firebase_creds = json.loads(base64.b64decode(firebase_creds_b64))
 cred = credentials.Certificate(firebase_creds)
 initialize_app(cred)
 
+# ── Google Cloud ────────────────────────────────────────
 google_creds_b64 = os.getenv("GOOGLE_CREDS_B64")
-google_creds_path = "/tmp/google-credentials.json"
+
+google_creds_path = str(Path(__file__).parent / "google-credentials.json")
+
 with open(google_creds_path, "w") as f:
     json.dump(json.loads(base64.b64decode(google_creds_b64)), f)
+
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_creds_path
 
-# ── App FastAPI ──────────────────────────────────────
-app = FastAPI(title="Keia · backend")
 
+# ── App FastAPI ─────────────────────────────────────────
+app = FastAPI(title="Keia · backend")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Import i registre de rutes ───────────────────────
+# ── Import i registre de rutes ──────────────────────────
 from routes.ask_keia import router as ask_keia_router
 from routes.thread import router as thread_router
 from routes.embeddings import router as embeddings_router
