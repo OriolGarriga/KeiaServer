@@ -2,13 +2,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from firebase_admin import credentials, initialize_app
 import os, dotenv
+import base64
+import json
 
-# ── Config global ────────────────────────────────────
-dotenv.load_dotenv()
-
-cred = credentials.Certificate("firebase-admin-sdk.json")
+firebase_creds_b64 = os.getenv("FIREBASE_CREDS_B64")
+firebase_creds = json.loads(base64.b64decode(firebase_creds_b64))
+cred = credentials.Certificate(firebase_creds)
 initialize_app(cred)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "google-credentials.json"
+
+google_creds_b64 = os.getenv("GOOGLE_CREDS_B64")
+google_creds_path = "/tmp/google-credentials.json"
+with open(google_creds_path, "w") as f:
+    json.dump(json.loads(base64.b64decode(google_creds_b64)), f)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_creds_path
 
 # ── App FastAPI ──────────────────────────────────────
 app = FastAPI(title="Keia · backend")
