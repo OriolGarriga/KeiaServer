@@ -13,3 +13,4 @@ torchaudio
 transformers
 accelerate
 huggingface-hub
+deep-translator
