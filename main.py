@@ -36,6 +36,10 @@ app.add_middleware(
 )
 
 # ── Import i registre de rutes ──────────────────────────
+@app.get("/")
+async def root():
+    return {"status": "Keia backend is alive."}
+
 from routes.ask_keia import router as ask_keia_router
 from routes.thread import router as thread_router
 from routes.embeddings import router as embeddings_router
