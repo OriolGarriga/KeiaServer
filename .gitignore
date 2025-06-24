@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env
+firebase-admin-sdk.json
+google-credentials.json
+
+# Node
+node_modules/
+
+# Altres
+prova.py
+output.jpg
+image.png
