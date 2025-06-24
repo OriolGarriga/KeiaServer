@@ -10,3 +10,6 @@ Pillow
 torch
 torchvision
 torchaudio
+transformers
+accelerate
+huggingface-hub
