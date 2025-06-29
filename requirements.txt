@@ -14,3 +14,5 @@ transformers
 accelerate
 huggingface-hub
 deep-translator
+ultralytics
+opencv-python

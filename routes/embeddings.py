@@ -12,7 +12,9 @@ from utils.stt import transcribe_openai
 from utils.tts import openai_tts
 from utils.firebase import save_msg
 from utils.openai_utils import blocks_to_text
-from utils.firebase import save_temp_text, get_temp_text  # ho crearem a continuació
+from utils.firebase import save_temp_text, get_temp_text  
+from fastapi.responses import JSONResponse
+import base64
 
 
 router = APIRouter()
@@ -24,9 +26,9 @@ ASSISTANT_ID = os.getenv("OPENAI_ASSISTANT_ID")
 async def prepare_text_from_audio(thread_id: str = Form(...), audio: UploadFile = File(...)):
     audio_bytes = await audio.read()
     text = transcribe_openai(audio_bytes, audio.filename or "audio.m4a")
-    print(f"📅 Transcripció rebuda: {text}")
+    print(f"Transcripció rebuda: {text}")
     
-    # 🧠 Desa la transcripció temporalment vinculada al thread
+    # Desa la transcripció temporalment vinculada al thread
     save_temp_text(thread_id, text)
 
     return {"status": "ok", "text": text}
@@ -47,17 +49,17 @@ async def prepare_image(
             if not text:
                 raise HTTPException(status_code=400, detail="No hi ha cap transcripció disponible")
 
-        print(f"📷 Rebuda imatge {index} per a thread {thread_id}")
+        print(f"Rebuda imatge {index} per a thread {thread_id}")
         image_bytes = await image.read()
         detections = detect_confident_objects(image_bytes, text)
         update_best_detection(thread_id, image_bytes, detections)
 
         best_score = max([d["confidence"] for d in detections], default=0.0)
-        print(f"✅ Confiança imatge {index}: {best_score:.3f}")
+        print(f"Confiança imatge {index}: {best_score:.3f}")
         return {"status": "ok", "confidence": best_score}
 
     except Exception as e:
-        print(f"❌ Error processant imatge {index}: {e}")
+        print(f"Error processant imatge {index}: {e}")
         raise HTTPException(status_code=500, detail="Error al processar la imatge")
 
 
@@ -70,15 +72,15 @@ async def search_object(
     try:
         uid = auth.verify_id_token(token)["uid"]
 
-        # 📄 Recuperem la transcripció temporal guardada abans
+        # Recuperem la transcripció temporal guardada abans
         transcription = get_temp_text(thread_id)
         if not transcription:
             raise HTTPException(400, "No s'ha trobat cap transcripció per aquest thread.")
 
-        print(f"📅 Transcripció recuperada: {transcription}")
+        print(f"Transcripció recuperada: {transcription}")
         save_msg(uid, thread_id, "user", transcription)
 
-        # 🖼️ Agafem les dues millors imatges
+        # Agafem les dues millors imatges
         best_images = get_best_images(thread_id)
         if not best_images or len(best_images) == 0:
             raise HTTPException(400, "No s'ha trobat cap imatge vàlida.")
@@ -116,7 +118,7 @@ async def search_object(
         if info.status == "failed":
             raise HTTPException(500, "La run ha fallat.")
 
-        # 🔁 Obtenim resposta de Keia
+        # Obtenim resposta de Keia
         messages = sorted(
             client.beta.threads.messages.list(thread_id=thread_id).data,
             key=lambda m: m.created_at,
@@ -129,10 +131,13 @@ async def search_object(
                 if txt:
                     save_msg(uid, thread_id, "assistant", txt)
                     audio_data = openai_tts(txt)
-                    return StreamingResponse(iter([audio_data]), media_type="audio/mpeg")
-
+                    encoded_audio = base64.b64encode(audio_data).decode("utf-8")
+                    return JSONResponse({
+                        "text": txt,
+                        "audio_base64": encoded_audio
+                    })
         return StreamingResponse(iter(["No he trobat cap resposta."]), media_type="text/plain")
 
     except Exception as e:
-        print("❌ /searchObject ERROR:", e)
+        print("/searchObject ERROR:", e)
         raise HTTPException(500, "backend error")
