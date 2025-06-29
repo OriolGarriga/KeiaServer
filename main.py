@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os, json, base64
 from firebase_admin import credentials, initialize_app
 from pathlib import Path
+from fastapi.responses import PlainTextResponse
 
 # Carrega variables del .env
 load_dotenv()
